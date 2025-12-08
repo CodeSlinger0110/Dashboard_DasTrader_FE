@@ -20,10 +20,30 @@ export default function AccountPage() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [activeTab, setActiveTab] = useState<'positions' | 'overview' | 'activity' | 'trades'>('positions')
   const { messages } = useWebSocket()
-  const processedMessagesRef = useRef<Set<string>>(new Set())
+  const processedMessageKeysRef = useRef<Set<string>>(new Set())
+  const previousMessagesLengthRef = useRef<number>(0)
+  const positionUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const orderUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const tradeUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     fetchData()
+    // Reset processed index when account changes
+    processedMessageKeysRef.current.clear()
+    previousMessagesLengthRef.current = 0
+    // Clear any pending timeouts
+    if (positionUpdateTimeoutRef.current) {
+      clearTimeout(positionUpdateTimeoutRef.current)
+      positionUpdateTimeoutRef.current = null
+    }
+    if (orderUpdateTimeoutRef.current) {
+      clearTimeout(orderUpdateTimeoutRef.current)
+      orderUpdateTimeoutRef.current = null
+    }
+    if (tradeUpdateTimeoutRef.current) {
+      clearTimeout(tradeUpdateTimeoutRef.current)
+      tradeUpdateTimeoutRef.current = null
+    }
   }, [accountId])
 
   const fetchPositions = useCallback(async () => {
@@ -87,39 +107,109 @@ export default function AccountPage() {
   }, [fetchPositions, fetchOrders, fetchTrades, fetchOverview, fetchActivities])
 
   useEffect(() => {
-    // Handle WebSocket updates - only process new messages
-    messages.forEach((msg) => {
-      // Create a unique key for this message
-      const messageKey = `${msg.timestamp}-${msg.type}-${msg.account_id}`
+    // Only process if there are actually new messages
+    if (messages.length <= previousMessagesLengthRef.current) {
+      return
+    }
+
+    // Process only new messages (from previous length to current length)
+    // Messages are stored newest first (index 0 is newest)
+    const startIndex = previousMessagesLengthRef.current
+    const endIndex = messages.length
+
+    let hasPositionUpdate = false
+    let hasOrderUpdate = false
+    let hasTradeUpdate = false
+
+    for (let i = startIndex; i < endIndex; i++) {
+      const msg = messages[i]
       
-      // Skip if already processed
-      if (processedMessagesRef.current.has(messageKey)) {
-        return
+      // Create a unique key using timestamp, type, account_id, and a hash of the data
+      const dataHash = JSON.stringify(msg.data || {}).slice(0, 50)
+      const messageKey = `${msg.timestamp}-${msg.type}-${msg.account_id}-${dataHash}`
+      
+      // Skip if already processed (duplicate check)
+      if (processedMessageKeysRef.current.has(messageKey)) {
+        continue
       }
 
       // Mark as processed
-      processedMessagesRef.current.add(messageKey)
+      processedMessageKeysRef.current.add(messageKey)
 
       // Only process messages for this account
       if (msg.account_id === accountId) {
         if (msg.type === 'position') {
-          fetchPositions()
+          hasPositionUpdate = true
         } else if (msg.type === 'order' || msg.type === 'order_action') {
-          fetchOrders()
+          hasOrderUpdate = true
         } else if (msg.type === 'trade') {
-          fetchTrades()
+          hasTradeUpdate = true
         } else if (msg.type === 'account_info' || msg.type === 'buying_power') {
           fetchOverview()
         }
       }
-    })
+    }
 
-    // Clean up old processed messages to prevent memory leak (keep last 1000)
-    if (processedMessagesRef.current.size > 1000) {
-      const entries = Array.from(processedMessagesRef.current)
-      processedMessagesRef.current = new Set(entries.slice(-500))
+    // Debounce position updates - only fetch once even if multiple position messages come in
+    if (hasPositionUpdate) {
+      if (positionUpdateTimeoutRef.current) {
+        clearTimeout(positionUpdateTimeoutRef.current)
+      }
+      positionUpdateTimeoutRef.current = setTimeout(() => {
+        console.log('Position updated (debounced)')
+        fetchPositions()
+        positionUpdateTimeoutRef.current = null
+      }, 300) // Wait 300ms to batch multiple updates
+    }
+
+    // Debounce order updates
+    if (hasOrderUpdate) {
+      if (orderUpdateTimeoutRef.current) {
+        clearTimeout(orderUpdateTimeoutRef.current)
+      }
+      orderUpdateTimeoutRef.current = setTimeout(() => {
+        console.log('Order updated (debounced)')
+        fetchOrders()
+        orderUpdateTimeoutRef.current = null
+      }, 300)
+    }
+
+    // Debounce trade updates
+    if (hasTradeUpdate) {
+      if (tradeUpdateTimeoutRef.current) {
+        clearTimeout(tradeUpdateTimeoutRef.current)
+      }
+      tradeUpdateTimeoutRef.current = setTimeout(() => {
+        console.log('Trade updated (debounced)')
+        fetchTrades()
+        tradeUpdateTimeoutRef.current = null
+      }, 300)
+    }
+
+    // Update the previous messages length
+    previousMessagesLengthRef.current = messages.length
+
+    // Clean up old processed message keys to prevent memory leak (keep last 500)
+    if (processedMessageKeysRef.current.size > 500) {
+      const entries = Array.from(processedMessageKeysRef.current)
+      processedMessageKeysRef.current = new Set(entries.slice(-250))
     }
   }, [messages, accountId, fetchPositions, fetchOrders, fetchTrades, fetchOverview])
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (positionUpdateTimeoutRef.current) {
+        clearTimeout(positionUpdateTimeoutRef.current)
+      }
+      if (orderUpdateTimeoutRef.current) {
+        clearTimeout(orderUpdateTimeoutRef.current)
+      }
+      if (tradeUpdateTimeoutRef.current) {
+        clearTimeout(tradeUpdateTimeoutRef.current)
+      }
+    }
+  }, [])
 
 
   const handleRefresh = async () => {
