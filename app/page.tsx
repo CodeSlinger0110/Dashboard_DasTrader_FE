@@ -4,19 +4,32 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { Account, User } from '@/types'
+import ProtectedRoute from '@/components/ProtectedRoute'
+import { useAuth, getAuthHeaders } from '@/contexts/AuthContext'
 
 export default function Home() {
   const [users, setUsers] = useState<User[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
   const { connected } = useWebSocket()
+  const { token, logout } = useAuth()
 
   useEffect(() => {
-    fetchAccounts()
-  }, [])
+    if (token) {
+      fetchAccounts()
+    }
+  }, [token])
 
   const fetchAccounts = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/accounts')
+      const response = await fetch('http://localhost:8000/api/accounts', {
+        headers: getAuthHeaders(token)
+      })
+      
+      if (response.status === 401) {
+        logout()
+        return
+      }
+      
       const data = await response.json()
       setUsers(data.users || [])
       setAccounts(data.accounts || [])
@@ -26,24 +39,31 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <nav className="bg-white dark:bg-gray-800 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                DasTrader Dashboard
-              </h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className={`flex items-center ${connected ? 'text-green-500' : 'text-red-500'}`}>
-                <div className={`w-2 h-2 rounded-full mr-2 ${connected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                <span className="text-sm">{connected ? 'Connected' : 'Disconnected'}</span>
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <nav className="bg-white dark:bg-gray-800 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between h-16">
+              <div className="flex items-center">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                  DasTrader Dashboard
+                </h1>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className={`flex items-center ${connected ? 'text-green-500' : 'text-red-500'}`}>
+                  <div className={`w-2 h-2 rounded-full mr-2 ${connected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <span className="text-sm">{connected ? 'Connected' : 'Disconnected'}</span>
+                </div>
+                <button
+                  onClick={logout}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
+                >
+                  Logout
+                </button>
               </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Group accounts by user */}
@@ -90,6 +110,7 @@ export default function Home() {
         )}
       </main>
     </div>
+    </ProtectedRoute>
   )
 }
 

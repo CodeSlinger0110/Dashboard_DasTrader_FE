@@ -9,6 +9,8 @@ import LiveTradeView from '@/components/LiveTradeView'
 import AccountOverviewPanel from '@/components/AccountOverviewPanel'
 import ActivityLog from '@/components/ActivityLog'
 import TradesView from '@/components/TradesView'
+import ProtectedRoute from '@/components/ProtectedRoute'
+import { useAuth, getAuthHeaders } from '@/contexts/AuthContext'
 
 export default function AccountPage() {
   const params = useParams()
@@ -20,6 +22,7 @@ export default function AccountPage() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [activeTab, setActiveTab] = useState<'positions' | 'overview' | 'activity' | 'trades'>('positions')
   const { messages } = useWebSocket()
+  const { token, logout } = useAuth()
   const processedMessageKeysRef = useRef<Set<string>>(new Set())
   const previousMessagesLengthRef = useRef<number>(0)
   const positionUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -48,53 +51,83 @@ export default function AccountPage() {
 
   const fetchPositions = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/accounts/${accountId}/positions`)
+      const response = await fetch(`http://localhost:8000/api/accounts/${accountId}/positions`, {
+        headers: getAuthHeaders(token)
+      })
+      if (response.status === 401) {
+        logout()
+        return
+      }
       const data = await response.json()
       setPositions(data.positions || [])
     } catch (error) {
       console.error('Error fetching positions:', error)
     }
-  }, [accountId])
+  }, [accountId, token, logout])
 
   const fetchOrders = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/accounts/${accountId}/orders`)
+      const response = await fetch(`http://localhost:8000/api/accounts/${accountId}/orders`, {
+        headers: getAuthHeaders(token)
+      })
+      if (response.status === 401) {
+        logout()
+        return
+      }
       const data = await response.json()
       setOrders(data.orders || [])
     } catch (error) {
       console.error('Error fetching orders:', error)
     }
-  }, [accountId])
+  }, [accountId, token, logout])
 
   const fetchOverview = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/accounts/${accountId}/overview`)
+      const response = await fetch(`http://localhost:8000/api/accounts/${accountId}/overview`, {
+        headers: getAuthHeaders(token)
+      })
+      if (response.status === 401) {
+        logout()
+        return
+      }
       const data = await response.json()
       setOverview(data)
     } catch (error) {
       console.error('Error fetching overview:', error)
     }
-  }, [accountId])
+  }, [accountId, token, logout])
 
   const fetchTrades = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/accounts/${accountId}/trades?limit=1000`)
+      const response = await fetch(`http://localhost:8000/api/accounts/${accountId}/trades?limit=1000`, {
+        headers: getAuthHeaders(token)
+      })
+      if (response.status === 401) {
+        logout()
+        return
+      }
       const data = await response.json()
       setTrades(data.trades || [])
     } catch (error) {
       console.error('Error fetching trades:', error)
     }
-  }, [accountId])
+  }, [accountId, token, logout])
 
   const fetchActivities = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/accounts/${accountId}/activity?limit=100`)
+      const response = await fetch(`http://localhost:8000/api/accounts/${accountId}/activity?limit=100`, {
+        headers: getAuthHeaders(token)
+      })
+      if (response.status === 401) {
+        logout()
+        return
+      }
       const data = await response.json()
       setActivities(data.activities || [])
     } catch (error) {
       console.error('Error fetching activities:', error)
     }
-  }, [accountId])
+  }, [accountId, token, logout])
 
   const fetchData = useCallback(async () => {
     await Promise.all([
@@ -214,7 +247,14 @@ export default function AccountPage() {
 
   const handleRefresh = async () => {
     try {
-      await fetch(`http://localhost:8000/api/accounts/${accountId}/refresh`, { method: 'POST' })
+      const response = await fetch(`http://localhost:8000/api/accounts/${accountId}/refresh`, {
+        method: 'POST',
+        headers: getAuthHeaders(token)
+      })
+      if (response.status === 401) {
+        logout()
+        return
+      }
       await fetchData()
     } catch (error) {
       console.error('Error refreshing:', error)
@@ -222,7 +262,8 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <nav className="bg-white dark:bg-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
@@ -313,6 +354,7 @@ export default function AccountPage() {
         )}
       </main>
     </div>
+    </ProtectedRoute>
   )
 }
 
