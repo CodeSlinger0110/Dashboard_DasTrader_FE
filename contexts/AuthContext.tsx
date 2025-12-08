@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import { getApiBaseUrl } from '@/lib/api'
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -13,7 +14,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const API_BASE_URL = 'http://localhost:8000'
+const API_BASE_URL = getApiBaseUrl()
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)

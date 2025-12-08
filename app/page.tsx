@@ -6,6 +6,7 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { Account, User } from '@/types'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useAuth, getAuthHeaders } from '@/contexts/AuthContext'
+import { getApiBaseUrl } from '@/lib/api'
 
 export default function Home() {
   const [users, setUsers] = useState<User[]>([])
@@ -21,7 +22,8 @@ export default function Home() {
 
   const fetchAccounts = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/accounts', {
+      const apiBaseUrl = getApiBaseUrl()
+      const response = await fetch(`${apiBaseUrl}/api/accounts`, {
         headers: getAuthHeaders(token)
       })
       

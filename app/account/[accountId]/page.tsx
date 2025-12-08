@@ -11,6 +11,7 @@ import ActivityLog from '@/components/ActivityLog'
 import TradesView from '@/components/TradesView'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useAuth, getAuthHeaders } from '@/contexts/AuthContext'
+import { getApiBaseUrl } from '@/lib/api'
 
 export default function AccountPage() {
   const params = useParams()
@@ -51,7 +52,8 @@ export default function AccountPage() {
 
   const fetchPositions = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/accounts/${accountId}/positions`, {
+      const apiBaseUrl = getApiBaseUrl()
+      const response = await fetch(`${apiBaseUrl}/api/accounts/${accountId}/positions`, {
         headers: getAuthHeaders(token)
       })
       if (response.status === 401) {
@@ -67,7 +69,8 @@ export default function AccountPage() {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/accounts/${accountId}/orders`, {
+      const apiBaseUrl = getApiBaseUrl()
+      const response = await fetch(`${apiBaseUrl}/api/accounts/${accountId}/orders`, {
         headers: getAuthHeaders(token)
       })
       if (response.status === 401) {
@@ -83,7 +86,8 @@ export default function AccountPage() {
 
   const fetchOverview = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/accounts/${accountId}/overview`, {
+      const apiBaseUrl = getApiBaseUrl()
+      const response = await fetch(`${apiBaseUrl}/api/accounts/${accountId}/overview`, {
         headers: getAuthHeaders(token)
       })
       if (response.status === 401) {
@@ -99,7 +103,8 @@ export default function AccountPage() {
 
   const fetchTrades = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/accounts/${accountId}/trades?limit=1000`, {
+      const apiBaseUrl = getApiBaseUrl()
+      const response = await fetch(`${apiBaseUrl}/api/accounts/${accountId}/trades?limit=1000`, {
         headers: getAuthHeaders(token)
       })
       if (response.status === 401) {
@@ -115,7 +120,8 @@ export default function AccountPage() {
 
   const fetchActivities = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/accounts/${accountId}/activity?limit=100`, {
+      const apiBaseUrl = getApiBaseUrl()
+      const response = await fetch(`${apiBaseUrl}/api/accounts/${accountId}/activity?limit=100`, {
         headers: getAuthHeaders(token)
       })
       if (response.status === 401) {
@@ -247,7 +253,8 @@ export default function AccountPage() {
 
   const handleRefresh = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/accounts/${accountId}/refresh`, {
+      const apiBaseUrl = getApiBaseUrl()
+      const response = await fetch(`${apiBaseUrl}/api/accounts/${accountId}/refresh`, {
         method: 'POST',
         headers: getAuthHeaders(token)
       })

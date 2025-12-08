@@ -25,8 +25,14 @@ npm start
 
 ## Configuration
 
-The frontend connects to the backend API at `http://localhost:8000` by default. To change this, update the API URLs in:
-- `app/page.tsx`
-- `app/account/[accountId]/page.tsx`
-- `hooks/useWebSocket.ts`
+The frontend connects to the backend API using environment variables. 
+
+1. Create a `.env.local` file in the `Frontend` directory:
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+```
+
+2. Replace `http://localhost:8000` with your backend URL if different.
+
+The environment variable is used throughout the application via the `lib/api.ts` utility functions. All API calls and WebSocket connections automatically use this configuration.
 

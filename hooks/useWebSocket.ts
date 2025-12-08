@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { getWebSocketUrl } from '@/lib/api'
 
 interface WebSocketMessage {
   type: string
@@ -15,7 +16,7 @@ export function useWebSocket() {
 
   const connect = useCallback(() => {
     try {
-      const ws = new WebSocket('ws://localhost:8000/ws')
+      const ws = new WebSocket(getWebSocketUrl())
       
       ws.onopen = () => {
         console.log('WebSocket connected')
