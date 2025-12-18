@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Position, Order } from '@/types'
 import { format } from 'date-fns'
 import Pagination from './Pagination'
@@ -15,6 +15,7 @@ export default function LiveTradeView({ positions, orders }: LiveTradeViewProps)
   const [positionsPerPage, setPositionsPerPage] = useState(25)
   const [ordersPage, setOrdersPage] = useState(1)
   const [ordersPerPage, setOrdersPerPage] = useState(25)
+  const [showAllOrders, setShowAllOrders] = useState(false)
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -30,8 +31,35 @@ export default function LiveTradeView({ positions, orders }: LiveTradeViewProps)
     return 'text-gray-600 dark:text-gray-400'
   }
 
-  // Filter open orders
-  const openOrders = orders.filter(o => o.status !== 'Executed' && o.status !== 'Closed')
+  // Filter orders based on showAllOrders toggle
+  // DasTrader status values: Accepted, Partial, Executed, Closed, Rejected, Hold, Sending, Triggered
+  // Open orders are: Accepted, Partial, Hold, Sending, Triggered (and any with left_quantity > 0)
+  const filteredOrders = React.useMemo(() => {
+    if (showAllOrders) {
+      return orders
+    }
+    
+    const filtered = orders.filter(o => {
+      const status = (o.status || '').toLowerCase()
+      const leftQty = o.left_quantity ?? 0
+      
+      // Explicitly include open statuses
+      const isOpenStatus = ['accepted', 'partial', 'hold', 'sending', 'triggered'].includes(status)
+      
+      // Exclude closed statuses
+      const isClosedStatus = ['executed', 'closed', 'rejected', 'canceled'].includes(status)
+      
+      // Order is open if:
+      // 1. It has an open status, OR
+      // 2. It has left_quantity > 0, OR  
+      // 3. It's not explicitly closed
+      return (isOpenStatus || leftQty > 0) && !isClosedStatus
+    })
+    
+    return filtered
+  }, [orders, showAllOrders])
+  
+  const openOrders = filteredOrders
 
   // Paginate positions
   const positionsTotalPages = Math.ceil(positions.length / positionsPerPage)
@@ -135,10 +163,19 @@ export default function LiveTradeView({ positions, orders }: LiveTradeViewProps)
 
       {/* Orders Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Open Orders
+            {showAllOrders ? 'All Orders' : 'Open Orders'}
           </h2>
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showAllOrders}
+              onChange={(e) => setShowAllOrders(e.target.checked)}
+              className="w-4 h-4 text-black dark:text-white border-gray-300 rounded focus:ring-black dark:focus:ring-white"
+            />
+            <span className="text-sm text-gray-700 dark:text-gray-300">Show all orders</span>
+          </label>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -174,7 +211,11 @@ export default function LiveTradeView({ positions, orders }: LiveTradeViewProps)
               {paginatedOrders.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                    No open orders
+                    {orders.length === 0 
+                      ? "No orders found" 
+                      : showAllOrders 
+                        ? "No orders to display" 
+                        : `No open orders (${orders.length} total orders - all are Executed/Closed/Rejected)`}
                   </td>
                 </tr>
               ) : (
