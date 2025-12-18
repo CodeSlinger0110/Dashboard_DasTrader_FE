@@ -92,7 +92,7 @@ export default function Pagination({
               disabled={typeof page === 'string'}
               className={`px-3 py-1 text-sm font-medium rounded-md ${
                 page === currentPage
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-black dark:bg-white text-white dark:text-black'
                   : typeof page === 'string'
                   ? 'text-gray-400 cursor-default'
                   : 'text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'

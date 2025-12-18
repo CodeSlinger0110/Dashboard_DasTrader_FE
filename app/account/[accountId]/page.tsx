@@ -314,7 +314,7 @@ export default function AccountPage() {
             </div>
             <button
               onClick={handleRefresh}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-black dark:bg-white text-white dark:text-black rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
             >
               Refresh
             </button>
@@ -330,7 +330,7 @@ export default function AccountPage() {
               onClick={() => setActiveTab('positions')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'positions'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  ? 'border-black dark:border-white text-black dark:text-white'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
               }`}
             >
@@ -340,7 +340,7 @@ export default function AccountPage() {
               onClick={() => setActiveTab('overview')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'overview'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  ? 'border-black dark:border-white text-black dark:text-white'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
               }`}
             >
@@ -350,7 +350,7 @@ export default function AccountPage() {
               onClick={() => setActiveTab('trades')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'trades'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  ? 'border-black dark:border-white text-black dark:text-white'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
               }`}
             >
@@ -360,7 +360,7 @@ export default function AccountPage() {
               onClick={() => setActiveTab('activity')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'activity'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  ? 'border-black dark:border-white text-black dark:text-white'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
               }`}
             >

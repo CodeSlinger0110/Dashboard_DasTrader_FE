@@ -171,7 +171,7 @@ export default function Home() {
                         <button
                           onClick={(e) => handleRetryConnection(account.account_id, e)}
                           disabled={retryingAccounts.has(account.account_id)}
-                          className="mt-4 w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-md transition-colors"
+                          className="mt-4 w-full px-4 py-2 text-sm font-medium text-white bg-black dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-md transition-colors"
                         >
                           {retryingAccounts.has(account.account_id) ? 'Connecting...' : 'Retry Connection'}
                         </button>
