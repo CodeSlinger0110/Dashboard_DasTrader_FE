@@ -12,6 +12,7 @@ import TradesView from '@/components/TradesView'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useAuth, getAuthHeaders } from '@/contexts/AuthContext'
 import { getApiBaseUrl } from '@/lib/api'
+import { TableSkeleton, StatsGridSkeleton, ActivitySkeleton } from '@/components/Skeleton'
 
 export default function AccountPage() {
   const params = useParams()
@@ -22,6 +23,13 @@ export default function AccountPage() {
   const [overview, setOverview] = useState<AccountOverview | null>(null)
   const [activities, setActivities] = useState<Activity[]>([])
   const [activeTab, setActiveTab] = useState<'positions' | 'overview' | 'activity' | 'trades'>('positions')
+  const [loading, setLoading] = useState({
+    positions: true,
+    orders: true,
+    trades: true,
+    overview: true,
+    activities: true,
+  })
   const { messages } = useWebSocket()
   const { token, logout } = useAuth()
   const processedMessageKeysRef = useRef<Set<string>>(new Set())
@@ -52,6 +60,7 @@ export default function AccountPage() {
 
   const fetchPositions = useCallback(async () => {
     try {
+      setLoading(prev => ({ ...prev, positions: true }))
       const apiBaseUrl = getApiBaseUrl()
       const response = await fetch(`${apiBaseUrl}/api/accounts/${accountId}/positions`, {
         headers: getAuthHeaders(token)
@@ -64,11 +73,14 @@ export default function AccountPage() {
       setPositions(data.positions || [])
     } catch (error) {
       console.error('Error fetching positions:', error)
+    } finally {
+      setLoading(prev => ({ ...prev, positions: false }))
     }
   }, [accountId, token, logout])
 
   const fetchOrders = useCallback(async () => {
     try {
+      setLoading(prev => ({ ...prev, orders: true }))
       const apiBaseUrl = getApiBaseUrl()
       const response = await fetch(`${apiBaseUrl}/api/accounts/${accountId}/orders`, {
         headers: getAuthHeaders(token)
@@ -81,11 +93,14 @@ export default function AccountPage() {
       setOrders(data.orders || [])
     } catch (error) {
       console.error('Error fetching orders:', error)
+    } finally {
+      setLoading(prev => ({ ...prev, orders: false }))
     }
   }, [accountId, token, logout])
 
   const fetchOverview = useCallback(async () => {
     try {
+      setLoading(prev => ({ ...prev, overview: true }))
       const apiBaseUrl = getApiBaseUrl()
       const response = await fetch(`${apiBaseUrl}/api/accounts/${accountId}/overview`, {
         headers: getAuthHeaders(token)
@@ -98,11 +113,14 @@ export default function AccountPage() {
       setOverview(data)
     } catch (error) {
       console.error('Error fetching overview:', error)
+    } finally {
+      setLoading(prev => ({ ...prev, overview: false }))
     }
   }, [accountId, token, logout])
 
   const fetchTrades = useCallback(async () => {
     try {
+      setLoading(prev => ({ ...prev, trades: true }))
       const apiBaseUrl = getApiBaseUrl()
       const response = await fetch(`${apiBaseUrl}/api/accounts/${accountId}/trades?limit=1000`, {
         headers: getAuthHeaders(token)
@@ -115,11 +133,14 @@ export default function AccountPage() {
       setTrades(data.trades || [])
     } catch (error) {
       console.error('Error fetching trades:', error)
+    } finally {
+      setLoading(prev => ({ ...prev, trades: false }))
     }
   }, [accountId, token, logout])
 
   const fetchActivities = useCallback(async () => {
     try {
+      setLoading(prev => ({ ...prev, activities: true }))
       const apiBaseUrl = getApiBaseUrl()
       const response = await fetch(`${apiBaseUrl}/api/accounts/${accountId}/activity?limit=100`, {
         headers: getAuthHeaders(token)
@@ -132,6 +153,8 @@ export default function AccountPage() {
       setActivities(data.activities || [])
     } catch (error) {
       console.error('Error fetching activities:', error)
+    } finally {
+      setLoading(prev => ({ ...prev, activities: false }))
     }
   }, [accountId, token, logout])
 
@@ -348,16 +371,75 @@ export default function AccountPage() {
 
         {/* Tab Content */}
         {activeTab === 'positions' && (
-          <LiveTradeView positions={positions} orders={orders} />
+          loading.positions || loading.orders ? (
+            <div className="space-y-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                </div>
+                <TableSkeleton rows={5} cols={7} />
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                </div>
+                <TableSkeleton rows={5} cols={8} />
+              </div>
+            </div>
+          ) : (
+            <LiveTradeView positions={positions} orders={orders} />
+          )
         )}
-        {activeTab === 'overview' && overview && (
-          <AccountOverviewPanel overview={overview} />
+        {activeTab === 'overview' && (
+          loading.overview ? (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="h-6 w-40 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+              </div>
+              <div className="p-6">
+                <StatsGridSkeleton items={9} />
+                <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+                  <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4"></div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                      <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2"></div>
+                      <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                      <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2"></div>
+                      <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : overview ? (
+            <AccountOverviewPanel overview={overview} />
+          ) : null
         )}
         {activeTab === 'trades' && (
-          <TradesView trades={trades} />
+          loading.trades ? (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+              </div>
+              <TableSkeleton rows={5} cols={10} />
+            </div>
+          ) : (
+            <TradesView trades={trades} />
+          )
         )}
         {activeTab === 'activity' && (
-          <ActivityLog activities={activities} />
+          loading.activities ? (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+              </div>
+              <ActivitySkeleton items={5} />
+            </div>
+          ) : (
+            <ActivityLog activities={activities} />
+          )
         )}
       </main>
     </div>
