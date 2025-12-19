@@ -31,7 +31,7 @@ export default function AccountPage() {
     activities: true,
   })
   const { messages } = useWebSocket()
-  const { token, logout } = useAuth()
+  const { token, logout, isLoading: authLoading, isAuthenticated } = useAuth()
   const processedMessageKeysRef = useRef<Set<string>>(new Set())
   const previousMessagesLengthRef = useRef<number>(0)
   const positionUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -39,7 +39,10 @@ export default function AccountPage() {
   const tradeUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    fetchData()
+    // Wait for auth to finish loading before fetching data
+    if (!authLoading && isAuthenticated && token) {
+      fetchData()
+    }
     // Reset processed index when account changes
     processedMessageKeysRef.current.clear()
     previousMessagesLengthRef.current = 0
@@ -56,16 +59,21 @@ export default function AccountPage() {
       clearTimeout(tradeUpdateTimeoutRef.current)
       tradeUpdateTimeoutRef.current = null
     }
-  }, [accountId])
+  }, [accountId, authLoading, isAuthenticated, token])
 
   const fetchPositions = useCallback(async () => {
+    if (!token) {
+      console.warn('No token available for fetching positions')
+      return
+    }
     try {
       setLoading(prev => ({ ...prev, positions: true }))
       const apiBaseUrl = getApiBaseUrl()
       const response = await fetch(`${apiBaseUrl}/api/accounts/${accountId}/positions`, {
         headers: getAuthHeaders(token)
       })
-      if (response.status === 401) {
+      if (response.status === 401 || response.status === 403) {
+        console.error('Authentication failed, logging out')
         logout()
         return
       }
@@ -79,13 +87,18 @@ export default function AccountPage() {
   }, [accountId, token, logout])
 
   const fetchOrders = useCallback(async () => {
+    if (!token) {
+      console.warn('No token available for fetching orders')
+      return
+    }
     try {
       setLoading(prev => ({ ...prev, orders: true }))
       const apiBaseUrl = getApiBaseUrl()
       const response = await fetch(`${apiBaseUrl}/api/accounts/${accountId}/orders`, {
         headers: getAuthHeaders(token)
       })
-      if (response.status === 401) {
+      if (response.status === 401 || response.status === 403) {
+        console.error('Authentication failed, logging out')
         logout()
         return
       }
@@ -99,13 +112,18 @@ export default function AccountPage() {
   }, [accountId, token, logout])
 
   const fetchOverview = useCallback(async () => {
+    if (!token) {
+      console.warn('No token available for fetching overview')
+      return
+    }
     try {
       setLoading(prev => ({ ...prev, overview: true }))
       const apiBaseUrl = getApiBaseUrl()
       const response = await fetch(`${apiBaseUrl}/api/accounts/${accountId}/overview`, {
         headers: getAuthHeaders(token)
       })
-      if (response.status === 401) {
+      if (response.status === 401 || response.status === 403) {
+        console.error('Authentication failed, logging out')
         logout()
         return
       }
@@ -119,13 +137,18 @@ export default function AccountPage() {
   }, [accountId, token, logout])
 
   const fetchTrades = useCallback(async () => {
+    if (!token) {
+      console.warn('No token available for fetching trades')
+      return
+    }
     try {
       setLoading(prev => ({ ...prev, trades: true }))
       const apiBaseUrl = getApiBaseUrl()
       const response = await fetch(`${apiBaseUrl}/api/accounts/${accountId}/trades?limit=1000`, {
         headers: getAuthHeaders(token)
       })
-      if (response.status === 401) {
+      if (response.status === 401 || response.status === 403) {
+        console.error('Authentication failed, logging out')
         logout()
         return
       }
@@ -139,13 +162,18 @@ export default function AccountPage() {
   }, [accountId, token, logout])
 
   const fetchActivities = useCallback(async () => {
+    if (!token) {
+      console.warn('No token available for fetching activities')
+      return
+    }
     try {
       setLoading(prev => ({ ...prev, activities: true }))
       const apiBaseUrl = getApiBaseUrl()
       const response = await fetch(`${apiBaseUrl}/api/accounts/${accountId}/activity?limit=100`, {
         headers: getAuthHeaders(token)
       })
-      if (response.status === 401) {
+      if (response.status === 401 || response.status === 403) {
+        console.error('Authentication failed, logging out')
         logout()
         return
       }
@@ -275,13 +303,18 @@ export default function AccountPage() {
 
 
   const handleRefresh = async () => {
+    if (!token) {
+      console.warn('No token available for refreshing account data')
+      return
+    }
     try {
       const apiBaseUrl = getApiBaseUrl()
       const response = await fetch(`${apiBaseUrl}/api/accounts/${accountId}/refresh`, {
         method: 'POST',
         headers: getAuthHeaders(token)
       })
-      if (response.status === 401) {
+      if (response.status === 401 || response.status === 403) {
+        console.error('Authentication failed, logging out')
         logout()
         return
       }
@@ -289,6 +322,33 @@ export default function AccountPage() {
     } catch (error) {
       console.error('Error refreshing:', error)
     }
+  }
+
+  // Show loading state while auth is initializing
+  if (authLoading) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-black dark:border-white"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+          </div>
+        </div>
+      </ProtectedRoute>
+    )
+  }
+
+  // Redirect to login if not authenticated
+  if (!isAuthenticated || !token) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-gray-600 dark:text-gray-400">Please log in to view this account</p>
+          </div>
+        </div>
+      </ProtectedRoute>
+    )
   }
 
   return (
